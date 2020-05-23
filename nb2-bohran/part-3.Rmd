@@ -1,0 +1,124 @@
+---
+title: "Notebook 2: Part 2"
+output: html_notebook
+---
+
+# Health Burden
+
+In this first code section, load your data and any necessary libraries (`dplyr`, `tidyr`, `ggplot`, any others you like).
+```{r, echo=F}
+# Set up (install packages if you don't have them)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(plotly)
+risk.data <- read.csv('./data/prepped/risk-data.csv', stringsAsFactors = FALSE) 
+```
+
+## Data Structure
+To get a basic sense of your dataset, check the following:
+
+- What is the size of the dataset (rows, columns)?
+- How many countries are present in the dataset?
+- What are the age-groups in the dataset?
+- What are the variables (columns) present in the dataset?
+- What is the data type of each variable?
+- What are the summary statistics of each quantitative variable (_hint: `summary()`_)
+
+```{r}
+row_count = nrow(risk.data)
+col_count = ncol(risk.data)
+number_of_countries = length(unique(risk.data$country))
+age_groups = unique(risk.data$age)
+variables = colnames(risk.data)
+variable_types = sapply(risk.data, typeof)
+summary_stats = summary(risk.data)
+
+print(row_count)
+print(col_count)
+print(number_of_countries)
+print(age_groups)
+print(variables)
+print(variable_types)
+print(summary_stats)
+```
+
+## Univariate Analysis
+To explore the distribution of each risk-column in a visual way, create a histogram of each risk-column of interest (e.g., `alcohol_use`, `drug_use`, etc.). For easier comparisons, you may want to store each histogram in a variable, then render all of the charts using the `grid.arrange` function from the `gridExtra` package.
+
+If you want to do this in an more advanced (and concise!) `R` way, you should **reshape your data** using the `gather` function to combine the risks (which are currently each their own column) into two columns (one for the _name_ of the risk, and the other for the _value_ of the death rate of that risk). Then, you can use the `facet_wrap` method of the ggplot library.
+
+- Note what you find surprising!
+
+
+```{r}
+# Make histograms for each risk column
+data.reshape = gather(risk.data, "name", "value", alcohol_use:smoking)
+ggplot(data.reshape, aes(x = value)) + geom_histogram() +  facet_wrap(~name)
+
+
+```
+
+_list some observations from your histograms here using Markdown code_:
+
+- Meat consumption does not play a role in death rates.
+- I would've expected drug use to also play a role in death rates but this data shows that it doesn't as much in comparison to low exercise.
+- Low exercise and smoking use are relatively at the same risk
+
+## Univariate analysis (by age)
+In this section, you should **write a function** to investigate how a given risk (column) varies by **age group** (the risk -- column name -- will be the argument to your function). More specifically, the function should create a set of histograms (one for each age-group) to show the distribution of death rates for a given risk factor. You should use the `facet_wrap` function (from `ggplot2`) to create the multi-plot layout.
+
+```{r}
+# Write your function here
+by_age <- function(risk_name) {
+  factored.risk <- select(risk.data, age, risk_name)
+  ggplot(factored.risk, aes_string(x = risk_name)) + geom_histogram() +  facet_wrap(~age)
+}
+
+# Create a plot to demonstrate that it works
+by_age('alcohol_use')
+
+```
+
+_list some observations from your histograms here using Markdown code_:
+
+- There are a lot of deaths between the 15-49 age range for alcohol use. 
+- For most risks, the 70+ age range seems to have the same value for death rates.
+
+
+## Univariate analysis (by sex)
+In this section, you should investigate how a given risk (column) varies by **sex**. To do this, **write a function** to create a single histogram with _overlapping distributions_ for males and females (for a given risk factor). 
+
+_Hint_: set the `fill` of your `ggplot()` aesthetic, and turn down the _alpha_ (opacity) to help reduce occlusion in the chart. 
+
+```{r}
+# Write your function here
+by_sex <- function(risk_name) {
+  df = select(risk.data, sex, risk_name)
+  ggplot(df,aes_string(x=risk_name)) + 
+    geom_histogram(data=subset(df,sex == 'male'), aes(fill=sex), alpha = 0.6) +
+    geom_histogram(data=subset(df,sex == 'female'), aes(fill=sex), alpha = 0.2) +
+    scale_fill_manual(name="sex", values=c("blue","red"),labels=c("male","female"))
+}
+
+# Create plot to demonstrate that it works
+by_sex('smoking')
+```
+
+_list some observations from your histograms here using Markdown code_:
+
+- Males are at a higher risk of death by smoking than females by almost 50%.
+
+
+## Bivariate analysis
+As a final step, create a **scatterplot matrix** of all of your risks to visually assess the correlation across death rates.
+
+```{r}
+pairs(data=risk.data, ~alcohol_use+drug_use+high_meat+low_exercise+smoking)
+```
+
+_list some observations from your histograms here using Markdown code_:
+
+- There seems to be a strong correlation between alcohol use and drug use.
+
+When you've finished this step, compile your code to an `html` document. 
