@@ -1,0 +1,85 @@
+---
+title: "A2: Segregation Metrics"
+author: "Nicole Bohra"
+date: "10/21/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(rmarkdown)
+library(knitr)
+library(kableExtra)
+
+source("analysis.R")
+```
+
+## **Definition of Metrices**
+
+###Correlation Metric:
+$$\frac { (I-P) }{ (1-P) } $$
+
+The _Correlation Ratio Metric_ is used to measure contact between minority and majority members in a group. This measure also helps indicate whether the two groups share a common residential area.
+
+$I$ represents the _Isolation Metric_ which measures the extent of members in minority groups having exposure only to each other. $P$ in this metric is defined as the proportion of the metropolitan area's population that is a minority. The correlation ratio helps take the isolation index metric to define it within the minority group population. Evaluating the correlation ratio helps identify how close-knit a community is based on race groups. This is also a good way to gain insight on how widespread interaction/isolation is within a region. While this is a good way to gain this insight, it can be hard to see how segregation translates to other areas across regions.
+
+
+###Isolation Metric:
+$$\quad I=\sum _{ i=1 }^{ n }{[( \frac
+{ { x }_{ i } }{ X })( \frac { { x }_{ i } }{ { t }_{ i } })] }$$
+
+The _Isolation Index Metric_ is a metric which measures how much members in a minority group interact solely with one another. This metric takes in the minority of a population within a certain area **(x<sub>i</sub>)** along with the total minority population in that area. **(t<sub>i</sub>)** is also used to take into account of the total population. This metric produces a value between 0 and 1, where higher values indicate more segregation. This metric helps us understand what regions in a city have stronger communities within minority groups, which can further raise questions on how members in these groups behave outside of it. Large isolation indices can also help us determine what societal factors are contributing to minority groups becoming more segregated in an area.
+
+###Dissimilarity Metric:
+$$\frac {\sum _{ i=1}^{ n } t_i | (p_i - P)|}{2TP ( 1 - P)}$$
+
+The _Dissimilarity Metric_ calculates the percentage of a particular group's population that would have to move to another area so that every neighborhood had the same percentage population of people from that group to equal the overall city's percentage. This metric takes in **(t<sub>i</sub>)** to account for the total population of the area, **(p<sub>i</sub>)** to represent the proportion of an area's population that is minority, $T$ to account for the total population, and lastly $P$ to represent the proportion of the metropolitan area's population that is a minority. This metric is useful in measuring evenness in an area's demographic. Using the dissimilarity metric can help us understand social strata and what characteristics are defined in a society. This could give us better insight as to what values or beliefs a particular society may have and how well that aligns with the groups that live there to better understand segregation.
+
+##**Metric Comparison**: 
+After computing these metrics for all 14 cities in the dataset, we can compare the varying levels of segregation within them:
+
+```{r segregation table}
+kable(metrics, digits = 3)
+```
+
+We can also determine which cities have the highest rate of segregation by each metric. 
+```{r high segregated cities}
+max.corr <- metrics %>% 
+  filter(Correlation_Index == max(Correlation_Index)) %>% 
+  select(City, Correlation_Index)
+
+max.iso <- metrics %>% 
+  filter(Isolation_Index == max(Isolation_Index)) %>% 
+  select(City, Isolation_Index)
+
+max.diss <- metrics %>% 
+  filter(Dissimilarity_Index == max(Dissimilarity_Index)) %>% 
+  select(City, Dissimilarity_Index)
+```
+* The city with the highest _correlation ratio_ is **`r max.corr`**.
+* The city with the highest _isolation ratio_ is **`r max.iso`**.
+* The city with the highest _dissimilarity index_ is **`r max.diss`**. 
+
+```{r plot}
+plot(corr_plot)
+plot(iso_plot)
+plot(diss_plot)
+```
+
+According to the Correlation plot, Baltimore, Milwaukee and St.Louis seem to have high correlation rates, whereas Denver has the least. This aligns with the Isolation plot as well since Baltimore has the highest Isolation rate in comparison to the other 14 countries. This indicates that Baltimore is a city with more segregation between minority and majority groups. The results for the Dissimilarity also align with the Correlation ratio and Isolation index because we see that Baltimore, Milwaukee and St.Louis all have a high percentange, indicating there is unevenness in these regions.
+
+##**New Metric**: 
+$$\sum _{ i=1 }^{n}{[( \frac
+{ { x }_{ i } }{ X })( \frac { { x }_{ i } }{ { t }_{ i } }) (\frac {1} {4}})] $$
+
+
+This new metric measures the isolation index by household versus individually with about 4 members per family. A larger  value would indicate higher levels of segregation, however with this approach we are able to assess it based on a household within that region (assuming that the estimated size of the household is 4). This metric is advantageous in that it can provide insight on how family size in a particular area can be impacted by societal factors and segregation. The one disadvantage about this metric is that we are only able to view one type of "household size". 
+
+```{r plot2}
+plot(new_plot)
+```
+
+In accordance to the other metric plots from above, we can observe that **Baltimore** still has a high index of isolation per household (~0.20) and **Denver** has the lowest (~0.07).
