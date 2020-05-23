@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/439526/7f851aac435a46819fc6d4232de84add
+bundleId: https://api.rpubs.com/api/v1/document/439526/7f851aac435a46819fc6d4232de84add
+url: http://rpubs.com/ansul27/439526
+when: 1542130095.70431

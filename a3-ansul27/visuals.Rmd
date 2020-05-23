@@ -1,0 +1,89 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(shiny)
+library(dplyr)
+library(tidyr)
+library(reshape2)
+```
+
+## Visualizations
+
+```{r echo = FALSE, message = FALSE, warning=FALSE}
+data <- read.csv("output/OG_data_cases.csv")
+sun_iq <- read.csv("data/Sunshine_Iquitos.csv")
+sun_sj <- read.csv("data/Sunshine_San_Juan.csv")
+sj_data <- read.csv("output/sj_data.csv")
+iq_data <- read.csv("output/iq_data.csv")
+
+```
+
+### Sunshine Hours - Exploratory Variable
+These visualizations represent the hours of sunshine the cities of Iquitos and San Juan receive on average during the year. From our research, we found that mosquitos who carry the dengue infection reproduce and bite humans at a higher rate during times of high temperatures. We wanted to explore if the amount of sunshine duration during a particular time of the year had a correlation with the amount of cases there were in a specific month. We hypothesized that in Iquitos, the months of July, August and September would have the most number of cases since these months had a higher amount of sunshine hours on average. For San Juan, we predicted the months of March, April, June, July, August, and September would have the most number of cases which in turn would lead to this city having more cases of dengue fever than Iquitos. 
+
+
+```{r echo = FALSE, message = FALSE, warning=FALSE}
+sun_iq <- as_data_frame(sun_iq)
+sun_sj <- as_data_frame(sun_sj)
+
+ggplot(data=sun_iq, aes(x=Month , y=Sunshine, fill=Month)) +  
+    labs(title = "Sunshine Hours in Iquitos", subtitle = "Data provided by Holiday Weather")+
+    scale_x_discrete(limits = month.abb) +
+    geom_bar(colour="black", stat="identity") +
+    guides(fill=FALSE)
+
+ggplot(data=sun_sj, aes(x=Month, y=Sunshine, fill=Month)) +
+    labs(title = "Sunshine Hours in San Juan", subtitle = "Data provided by Holiday Weather")+
+    scale_x_discrete(limits = month.abb) +
+    geom_bar(colour="black", stat="identity") +
+    guides(fill=FALSE)
+```
+
+
+### Precipitation Amount
+These next set of visualizations represent the total number of dengue cases based on precipitation amounts (in mm). The climate has a significant impact on the emergence of dengue in a region. Increase in rainfall specifically has been an indicator of rising dengue cases, so we used precipitation_amt_mm to assess the relationship between differing levels in rainfall and the amount of dengue cases that arise in San Juan and Iquitos. 
+
+Looking at the plot for San Juan, we observed a few outliers but for the most part observed an upwards trend in the number of cases as precipitation amounts increased. The same conclusion did not hold true for Iquitos however, since the number of cases decreased a bit as the rainfall amount increased. From these plots, we cannot conclude that precipitation is a strong factor in predicting dengue cases, but it is still important to consider in our predictive analysis.   
+
+
+```{r echo = FALSE, message = FALSE, warning=FALSE}
+
+sj_data$pc <- predict(prcomp(~reanalysis_avg_temp_k+precipitation_amt_mm, sj_data))[,1]
+
+ggplot(sj_data, aes(precipitation_amt_mm, total_cases, color = pc)) +
+  labs(title = "Preciptation vs Total Cases in San Juan")+
+  geom_point(shape = 16, size = 5, show.legend = FALSE, alpha = .4) +
+  theme_minimal() +
+  scale_color_gradient(low = "#0091ff", high = "#f0650e")
+
+iq_data$pc <- predict(prcomp(~reanalysis_avg_temp_k+precipitation_amt_mm, iq_data))[,1]
+
+ggplot(iq_data, aes(precipitation_amt_mm, total_cases, color = pc)) +
+  labs(title = "Preciptation vs Total Cases in Iquitos")+
+  geom_point(shape = 16, size = 5, show.legend = FALSE) +
+  theme_minimal() +
+  scale_color_gradient(low = "#0091ff", high = "#f0650e")
+```
+
+
+### Dengue Over the Years
+The last set of visualizations showcase the number of cases of dengue over the years in each city. While dengue has re-emerged in the past three decades, cases in Iquitos and San Juan have been decreasing on average.
+
+
+```{r echo = FALSE, message = FALSE, warning=FALSE}
+
+ggplot(data=sj_data, aes(x=year, y=total_cases, fill=year)) +
+  geom_bar(stat="identity", show.legend = FALSE) 
+
+scaleFUN <- function(x) sprintf("%.0f", x)
+ggplot(data=iq_data, aes(x = year, y=total_cases, fill=year)) +
+  scale_x_continuous(labels=scaleFUN) +
+  geom_bar(stat="identity", show.legend = FALSE)
+
+```
+
+
