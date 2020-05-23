@@ -1,0 +1,115 @@
+---
+title: "Poisson Modeling (nb-4, part-3)"
+output: html_document
+---
+
+## Poisson regression example
+This notebook will be built based on [this blog post](https://stats.idre.ucla.edu/r/dae/poisson-regression/). You will include many markdown comments (like this one!) to describe the code used and insights generated.
+
+```{r setup, include=FALSE}
+# Set up code block -- don't print ("include") results. 
+# This is a good place to load data / packages
+
+require(ggplot2)
+require(sandwich)
+require(msm)
+
+# **Read** the poisson.pdf overview, then
+# implement the Poisson regression described in this tutorial:
+# https://stats.idre.ucla.edu/r/dae/poisson-regression/
+# You should **copy and paste** code from that tutorial (or accomplish
+# the same ends using different code, if you prefer). 
+# Make sure to **add markdown annotation** describing what your code does, 
+# and how you can interpret the results. 
+
+```
+
+Reads in data and creates categorical predictor "prog" with 3 levels which indicate the kind of program (General, Academic, Vocational).
+```
+p <- read.csv("https://stats.idre.ucla.edu/stat/data/poisson_sim.csv")
+p <- within(p, {
+  prog <- factor(prog, levels=1:3, labels=c("General", "Academic", 
+                                                     "Vocational"))
+  id <- factor(id)
+})
+summary(p)
+
+```
+tapply function is used to display summary statistics by the program type. The results suggest a program type is good for preducting the number of awards since the mean value of the outcome varies by prog. 
+```
+with(p, tapply(num_awards, prog, function(x) {
+  sprintf("M (SD) = %1.2f (%1.2f)", mean(x), sd(x))
+}))
+
+ggplot(p, aes(num_awards, fill = prog)) +
+  geom_histogram(binwidth=.5, position="dodge")
+```
+Perform the Poisson model analysis using "glm" function with proj and math being predictors and the dependent variable being awards.
+```
+summary(m1 <- glm(num_awards ~ prog + math, family="poisson", data=p))
+
+
+cov.m1 <- vcovHC(m1, type="HC0")
+std.err <- sqrt(diag(cov.m1))
+r.est <- cbind(Estimate= coef(m1), "Robust SE" = std.err,
+"Pr(>|z|)" = 2 * pnorm(abs(coef(m1)/std.err), lower.tail=FALSE),
+LL = coef(m1) - 1.96 * std.err,
+UL = coef(m1) + 1.96 * std.err)
+
+r.est
+```
+The coefficient for math is 0.07 which indicates that a one unit increase in math is 0.07. The coefficient for Academic is 1.1 which indicates that a one unit increase in Academic is 1.1. The prog.Vocational indicator variable is 0.367 indicates the expected difference in log count between Vocational and General. We can say that this model fits well since the chi-squared test is not statistically significant.The two degree-of-freedom chi-square test indicates that prog is a statistically significant predictor of num_awards.
+```
+with(m1, cbind(res.deviance = deviance, df = df.residual,
+  p = pchisq(deviance, df.residual, lower.tail=FALSE)))
+```
+Update m1 model dropping prog
+```
+m2 <- update(m1, . ~ . - prog)
+```
+Test model differences with chi square test
+```
+anova(m2, m1, test="Chisq")
+```
+Present the regression results as incident rate ratios along with their standard errors together with the confidence interval. To calculate the standard error for the incident rate ratios, the Delta method is used.
+```
+s <- deltamethod(list(~ exp(x1), ~ exp(x2), ~ exp(x3), ~ exp(x4)), 
+                                                coef(m1), cov.m1)
+```
+Exponentiate old estimates dropping the p values
+```
+rexp.est <- exp(r.est[, -3])
+```
+Replace SEs with estimates for exponentiated coefficients
+```
+rexp.est[, "Robust SE"] <- s
+
+rexp.est
+```
+The predicted number of events for level 1 of prog is 0.21, which holds math at its mean.
+The predicted number of events for level 2 of prog is 0.62, which holds math at its mean. 
+The predicted number of events for level 3 of prog is 0.31, which holds math at its mean.
+The ratios of the predicted counts $((\frac {.625}{.211} = 2.96), (\frac{.306}{.211} = 1.45))$ aligns with the IRR.
+```
+(s1 <- data.frame(math = mean(p$math),
+  prog = factor(1:3, levels = 1:3, labels = levels(p$prog))))
+  
+  predict(m1, s1, type="response", se.fit=TRUE)
+```
+Calculate and store predicted values
+```
+p$phat <- predict(m1, type="response")
+```
+Order by program and then by math
+```
+p <- p[with(p, order(prog, math)), ]
+```
+
+Create the plot
+```
+ggplot(p, aes(x = math, y = phat, colour = prog)) +
+  geom_point(aes(y = num_awards), alpha=.5, position=position_jitter(h=.2)) +
+  geom_line(size = 1) +
+  labs(x = "Math Score", y = "Expected number of awards")
+  ```
+
